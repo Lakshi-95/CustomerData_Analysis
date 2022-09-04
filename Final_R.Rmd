@@ -1,0 +1,131 @@
+```{r}
+library(readxl)
+library(dplyr)
+
+customers <- read_excel("C:\\Users\\Lakshi\\Desktop\\customer_data.xlsx", sheet =1)
+glimpse(customers)
+```
+Thus the data has 999 rows and 5 columns. It gives information about the customers, the industries in which they deal along with their sales method and language.
+```{r}
+#To check for uniqueness
+length(unique(data_my$id_m))
+```
+Therefore the dataset contains data about 999 customers.
+```{r}
+Prod_type <- read_excel("C:\\Users\\Lakshi\\Desktop\\customer_data.xlsx", sheet =2)
+glimpse(Prod_type)
+```
+Thus the data has 1457 rows and 4 columns. It contains information about product and its validity indicated by its beginning date and end date.
+```{r}
+table(Prod_type$product)
+```
+There are two types of product Credit Card Acceptance and Terminal.
+```{r}
+trx_data =  read.csv("C:\\Users\\Lakshi\\Desktop\\trx_data.csv" )
+glimpse(trx_data)
+```
+The transaction data consists of transaction details of customers including transaction amount along with year and month of transaction data. 
+```{r}
+trx_data %>% distinct(trx_year)
+```
+Therefore it contains transaction data for year 2020 only.
+```{r}
+length(unique(trx_data$merchant))
+```
+The dataset contains 761 unique customer ids.
+
+Lets look at the active customers.
+```{r}
+Prod_type$active = case_when(as.Date(Prod_type$enddate)>=Sys.Date()~1,TRUE~0)
+glimpse(Prod_type)
+```
+
+```{r}
+#Making Pivot tables
+library("reshape2")
+Active_customers =dcast(Prod_type,id_merchant~product,value.var = "active",fun.aggregate = sum)
+colnames(Active_customers)[2] = "Creditcard_Acceptance"
+Active_customers
+```
+
+```{r}
+Active_customers
+```
+```{r}
+table(Active_customers$Creditcard_Acceptance)
+```
+```{r}
+table(Active_customers$Terminal)
+```
+
+
+```{r}
+#Active customers for both products
+both =  Active_customers %>%
+        select(id_merchant,Creditcard_Acceptance , Terminal) %>%
+        filter(Creditcard_Acceptance >=1 & Terminal >=1)
+both
+```
+
+```{r}
+both%>%distinct(id_merchant)
+```
+391 customers have both credit card acceptance and terminal product.
+
+```{r}
+CCA_customers =  Active_customers %>%
+        select(id_merchant,Creditcard_Acceptance , Terminal) %>%
+        filter(Creditcard_Acceptance >=1)
+CCA_customers %>% distinct(id_merchant)
+```
+868 customers have credit card acceptance product.
+```{r}
+Terminal_customers =  ptq %>%
+        select(id_merchant,Creditcard_Acceptance , Terminal) %>%
+        filter(Terminal >=1)
+Terminal_customers %>%distinct(id_merchant)
+```
+
+521 customers have terminal cards.
+```{r}
+Atleast_oneproduct = 868+521-391
+Atleast_oneproduct
+```
+
+Thus, according to set theory:
+Customers with atleast one product = 885 + 521 - 391  = 998
+
+Exactly one product 
+```{r}
+#Terminal Product only
+Terminal_only =  Active_customers %>%
+        select(id_merchant,Creditcard_Acceptance , Terminal) %>%
+        filter(Terminal >=1 & Creditcard_Acceptance ==0)
+Terminal_only %>%distinct(id_merchant)
+```
+130 customers have terminal product only.
+```{r}
+#Credit Card Product Only
+CCP_only =  Active_customers %>%
+        select(id_merchant,Creditcard_Acceptance , Terminal) %>%
+        filter(Creditcard_Acceptance >=1 & Terminal ==0 )
+Active_customers %>%distinct(id_merchant)
+```
+477 customers have credit card acceptance only.
+
+```{r}
+#Average Transaction Amount per industry
+trx_industry = merge(customers,trx_data,by.x = 'id_m', by.y = 'merchant')
+#trx_industry
+glimpse(trx_industry)
+
+```
+```{r}
+
+pt9 = trx_industry %>% group_by(industry)%>%summarise(avg_trx_amount = mean(trx_amount))
+pt9
+```
+```{r}
+library(ggplot2)
+ggplot(pt9,aes(industry, avg_trx_amount,fill = industry))+ geom_bar(stat= 'identity') 
+```
